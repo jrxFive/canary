@@ -9,7 +9,11 @@ class Tukey(object):
     '''
 
     def on_get(self, req, resp):
+        timeseries, tidx, vidx = utils.backend_retreival(req)
+        result = self._work(timeseries, tidx=tidx, vidx=vidx)
+
         resp.status = falcon.HTTP_200
+        resp.body = json.dumps(result)
 
     def on_post(self, req, resp):
         resp.status = falcon.HTTP_200
@@ -17,10 +21,7 @@ class Tukey(object):
     def on_put(self, req, resp):
         resp.status = falcon.HTTP_200
 
-    def _work(self, timeseries, tidx=0, vidx=1):
-        # Outlier threshold - higher values trigger only extreme outliers
-        threshold = 1.5
-
+    def _work(self, timeseries, outlier_threshold=1.5, tidx=0, vidx=1):
         series = np.array([x[vidx] for x in timeseries])
 
         # Calculate quartiles and IQR
@@ -28,8 +29,8 @@ class Tukey(object):
         iqr = q75 - q25
 
         # Lower and upper outlier boundaries
-        low = q25 - (threshold * iqr)
-        high = q75 + (threshold * iqr)
+        low = q25 - (outlier_threshold * iqr)
+        high = q75 + (outlier_threshold * iqr)
 
         # Indexes of outliers
         low_indexes = np.where(series < low)
