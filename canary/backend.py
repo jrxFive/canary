@@ -41,7 +41,7 @@ def backend_influxdb(influx_params):
     params = {
         "db": influx_params['database'],
         "epoch": influx_params['epoch'],
-        "q": "select * from {series}".format(series=influx_params['series'])
+        "q": "select value from {series}".format(series=influx_params['series'])
     }
 
     response = requests.get(url, params=params)
@@ -86,7 +86,7 @@ def backend_graphite(graphite_params):
 
     return response.json()[0]['datapoints'], 1, 0
 
-def pull_backend(backend, params):
+def _pull_backend(backend, params):
     if backend == "influxdb":
         return backend_influxdb(params)
     elif backend == "graphite":

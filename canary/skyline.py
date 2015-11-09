@@ -5,22 +5,8 @@ import time
 import falcon
 import json
 
-from functools import wraps
-
-
-def _tail_avg(timeseries, tidx=0, vidx=1):
-    """
-    This is a utility function used to calculate the average of the last three
-    datapoints in the series as a measure, instead of just the last datapoint.
-    It reduces noise, but it also reduces sensitivity and increases the delay
-    to detection.
-    """
-    try:
-        t = (timeseries[-1][vidx] + timeseries[-2]
-             [vidx] + timeseries[-3][vidx]) / 3
-        return t
-    except IndexError:
-        return timeseries[-1][vidx]
+import backend
+import utils
 
 
 class MedianAbsoluteDeviation(object):
@@ -31,8 +17,10 @@ class MedianAbsoluteDeviation(object):
     # backend, ip, port, series, db=None, tags=None, start=None, end='-24h'
 
     def on_get(self, req, resp):
-        resp.status = falcon.HTTP_200
-        resp.body = json.dumps(True)
+            timeseries, tidx, vidx = utils.backend_retreival(req)
+            result = self._work(timeseries, tidx=tidx, vidx=vidx)
+
+            resp.body = json.dumps(result)
 
     def on_post(self, req, resp):
         resp.status = falcon.HTTP_200
@@ -53,12 +41,14 @@ class MedianAbsoluteDeviation(object):
         if median_deviation == 0:
             return False
 
-        test_statistic = demedianed.iget(-1) / median_deviation
+        test_statistic = demedianed.iat[-1] / median_deviation
 
         # Completely arbitary...triggers if the median deviation is
         # 6 times bigger than the median
         if test_statistic > deviation_threshold:
             return True
+        else:
+            return False
 
 
 class Grubbs(object):
@@ -121,10 +111,11 @@ class FirstHourAverage(object):
 
 class StddevFromAverage(object):
     """
-    A timeseries is anomalous if the absolute value of the average of the latest
-    three datapoint minus the moving average is greater than three standard
-    deviations of the average. This does not exponentially weight the MA and so
-    is better for detecting anomalies with respect to the entire series.
+    A timeseries is anomalous if the absolute value of the average of the
+    latestthree datapoint minus the moving average is greater than three
+    standard deviations of the average. This does not exponentially
+    weight the MA and so is better for detecting anomalies with respect
+    to the entire series.
     """
 
     def on_get(self, req, resp):
@@ -144,12 +135,3 @@ class StddevFromAverage(object):
         t = tail_avg(timeseries)
 
         return abs(t - mean) > 3 * stdDev
-
-
-class StddevFromMovingAverage(object):
-    """
-    A timeseries is anomalous if the absolute value of the average of the latest
-    three datapoint minus the moving average is greater than three standard
-    deviations of the moving average. This is better for finding anomalies with
-    respect to the short term trends.
-    """
