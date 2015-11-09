@@ -1,6 +1,15 @@
 '''HTTP GET Requests to retrieve timeseries data from different backends'''
 
 import requests
+import falcon
+import json
+
+class AvailableBackends(object):
+    '''Falcon resource to return json list containing all possible backends'''
+
+    def on_get(self, req, resp):
+        resp.status = falcon.HTTP_200
+        resp.body = json.dumps(get_backends())
 
 def backend_influxdb(influx_params):
     '''
