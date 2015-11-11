@@ -11,18 +11,26 @@ class Tukey(object):
 
     def on_get(self, req, resp):
         timeseries, tidx, vidx = utils.backend_retreival(req)
-        result = self._work(timeseries, tidx=tidx, vidx=vidx)
-
-        resp.status = falcon.HTTP_200
-        resp.body = json.dumps(result)
+        self._run(req, resp, timeseries, tidx, vidx)
 
     def on_post(self, req, resp):
+        timeseries, tidx, vidx = utils.backend_retreival(req)
+        self._run(req, resp, timeseries, tidx, vidx)
+
+    def _run(self, req, resp, timeseries, tidx, vidx):
+
+        outlier_threshold = req.get_param_as_int("outlier_threshold",
+                                                 required=False)
+
+        if outlier_threshold:
+            result = self._work(timeseries, tidx, vidx, outlier_threshold)
+        else:
+            result = self._work(timeseries, tidx=tidx, vidx=vidx)
+
+        resp.body = json.dumps(result)
         resp.status = falcon.HTTP_200
 
-    def on_put(self, req, resp):
-        resp.status = falcon.HTTP_200
-
-    def _work(self, timeseries, outlier_threshold=1.5, tidx=0, vidx=1):
+    def _work(self, timeseries, tidx=0, vidx=1, outlier_threshold=1.5):
         series = np.array([x[vidx] for x in timeseries])
 
         # Calculate quartiles and IQR
