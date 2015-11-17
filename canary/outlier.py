@@ -4,7 +4,7 @@ import json
 
 class Tukey(object):
     '''
-        A timeseries is anomalous if the last data point is 1.5 times
+        A timeseries is anomalous if any point is 1.5 times
         the interquartile range less than the first quartile or more than
         the third quartile.
     '''
@@ -47,7 +47,11 @@ class Tukey(object):
 
         indexes = np.concatenate((low_indexes, high_indexes), axis=1)
 
-        length = np.shape(series)[0]
+        result = []
 
-        # Return true if the last index in series is anomalous
-        return np.in1d(length - 1, indexes)[0]
+        for i in indexes.tolist():
+            if len(i) > 0:
+                result.append(timeseries[i[0]])
+
+        # Return timeseries of outliers
+        return result
