@@ -50,8 +50,8 @@ class Tukey(object):
         result = []
 
         for i in indexes.tolist():
-            if len(i) > 0:
-                result.append(timeseries[i[0]])
+            for x in i:
+                result.append(timeseries[x])
 
         # Return timeseries of outliers
         return result
