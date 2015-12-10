@@ -31,10 +31,11 @@ class Tukey(object):
         resp.status = falcon.HTTP_200
 
     def _work(self, timeseries, tidx=0, vidx=1, outlier_threshold=1.5):
-        series = np.array([x[vidx] for x in timeseries])
+        series = np.array(timeseries)
+        values = series[:,vidx]
 
         # Calculate quartiles and IQR
-        q25, q75 = np.percentile(series, [25,75])
+        q25, q75 = np.percentile(values, [25,75])
         iqr = q75 - q25
 
         # Lower and upper outlier boundaries
@@ -42,16 +43,11 @@ class Tukey(object):
         high = q75 + (outlier_threshold * iqr)
 
         # Indexes of outliers
-        low_indexes = np.where(series < low)
-        high_indexes = np.where(series > high)
+        low_indexes = np.where(values < low)
+        high_indexes = np.where(values > high)
 
         indexes = np.concatenate((low_indexes, high_indexes), axis=1)
-
-        result = []
-
-        for i in indexes.tolist():
-            for x in i:
-                result.append(timeseries[x])
+        indexes = indexes.flatten()
 
         # Return timeseries of outliers
-        return result
+        return series[indexes].tolist()
